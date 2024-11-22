@@ -101,6 +101,7 @@ while(True):
 
     for blob in merged_blobs:
         if blob.area()>max:
+            
 
         if blob.area()>MIN_AREA_THRESHOLD:
             img.draw_rectangle(blob.rect())
