@@ -56,19 +56,38 @@ grap_arm, shooting_arm 동작
 
 """
 
-shooting_motor.run_until_stalled(-100,Stop.COAST,duty_limit=50) # shooting_motor 내리기
-grab_motor.run_until_stalled(100,Stop.COAST,duty_limit=50) #  grab_motor 올리기
-grab_motor.reset_angle(0) 
+# shooting_motor.run_until_stalled(-100,Stop.COAST,duty_limit=50) # shooting_motor 내리기
+# grab_motor.run_until_stalled(100,Stop.COAST,duty_limit=50) #  grab_motor 올리기
+# grab_motor.reset_angle(0) 
 
-grab_motor.run_target(100,-100)
-robot.straight(100)
+# grab_motor.run_target(100,-100)
+# robot.straight(100)
 
-grab_motor.run_until_stalled(200,Stop.COAST,duty_limit=50)
+# grab_motor.run_until_stalled(200,Stop.COAST,duty_limit=50)
 
-grab_motor.run_until_stalled(-200,Stop.COAST,duty_limit=50)
-shooting_motor.run(2000)
-time.sleep(0.25)
-shooting_motor.stop()
+# grab_motor.run_until_stalled(-200,Stop.COAST,duty_limit=50)
+# shooting_motor.run(2000)
+# time.sleep(0.25)
+# shooting_motor.stop()
+
+#공을 잡고 슈팅을 한 후 슈팅모터를 제자리에 위치하는 함수
+def shoot():
+    shooting_motor.run_until_stalled(-100,Stop.COAST,duty_limit=50) # shooting_motor 내리기
+    grab_motor.run_until_stalled(100,Stop.COAST,duty_limit=50) #  grab_motor 올리기
+    grab_motor.reset_angle(0) 
+    shooting_motor.reset_angle(0)
+
+    grab_motor.run_target(100,-100)
+    robot.straight(100)
+
+    grab_motor.run_until_stalled(200,Stop.COAST,duty_limit=50)
+
+    grab_motor.run_until_stalled(-200,Stop.COAST,duty_limit=50)
+    shooting_motor.run(2000)
+    time.sleep(0.25)
+    shooting_motor.stop()
+    shooting_motor.run_target(100, 0)
+
 
 #슈팅
 # from pybricks.robotics import DriveBase
@@ -131,14 +150,15 @@ def pd_control(cam_Data,kp,kd,power):
     """
     main
     """
-ev3.speaker.beep()
-threshold=200
-previous_error=0
+    ev3.speaker.beep()
+    threshold=200
+    previous_error=0
     
-while True:
-    data=ser.read_all()
-    if data:
-        filtered_data=data_filter(data)
-        if filtered_data is not None:
-            print(filtered_data)
-            pd_control(filter_data,kp=0.5,kd=0.1,power=100)
+    while True:
+        data=ser.read_all()
+        if data:
+            filtered_data=data_filter(data)
+            if filtered_data is not None:
+                print(filtered_data)
+                pd_control(filter_data,kp=0.5,kd=0.1,power=100)
+        wait(10)
