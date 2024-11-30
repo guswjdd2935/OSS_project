@@ -13,10 +13,6 @@ sensor.skip_frames(time=2000)
 
 clock = time.clock()
 uart=UART(3,115200,timeout_char=200)
-#while True:
-#    uart.write("hello world")
-#    time.sleep_ms(1000)
-#    print('send')
 
 # 1단계: Camera 스트리밍
 sensor.reset()
@@ -99,10 +95,8 @@ while(True):
 
     merged_blobs = merge_blobs(blobs)
 
-    for blob in merged_blobs:
-        if blob.area()>max:
-            
-
+    for blob in merged_blobs: 
+        
         if blob.area()>MIN_AREA_THRESHOLD:
             img.draw_rectangle(blob.rect())
             img.draw_cross(blob.x + blob.w // 2, blob.y + blob.h //2)
