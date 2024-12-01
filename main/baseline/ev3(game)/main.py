@@ -118,7 +118,7 @@ while True:
         #filter_result[0] : x, filter_result[1] : y
         if filter_result[0]!= -1 and filter_result[1]!= -1:
         # if filter_result[0]!= -1 and filter_result[1]!= -1:
-            if filter_result[1] > 90: #공이 카메라 화면 기준으로 아래에 위치 = 로봇에 가까워졌다
+            if filter_result[1] > 100: #공이 카메라 화면 기준으로 아래에 위치 = 로봇에 가까워졌다
                 robot.straight(100) #강제로 앞으로 이동
                 grab('motion3') #공을 잡기
                 time.sleep(1) #동작간 딜레이
@@ -131,7 +131,7 @@ while True:
                 shoot('zero')
                 grab('motion2') 
             else: #공이 카메라 화면 기준 멀리 위치해 있으면 chase한다
-                pd_control(filter_result[0], kp=0.5, kd=0.1, power=100)
+                pd_control(filter_result[0], kp=0.5, kd=0.3, power=100)
         # else: # 센서가 공을 보지 못했을 경우의 움직임.
         #     robot.straight(50)
         #     robot.turn(10)
