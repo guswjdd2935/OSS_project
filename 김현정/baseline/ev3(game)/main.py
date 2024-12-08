@@ -13,6 +13,8 @@ import time
 ev3 = EV3Brick()
 gyro = GyroSensor(Port.S1)
 ser = UARTDevice(Port.S2, baudrate=115200)
+ultrasonic_sensor = UltrasonicSensor(Port.S3)
+touch_sensor = TouchSensor(Port.S4)
 
 #==========[motors]==========
 grab_motor = Motor(Port.B)
@@ -24,23 +26,20 @@ robot = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=115)
 
 #==========[target_angle turn(gyro)]==========
 def turn(target_angle, power): 
-    # left_motor.run(power)
-    # right_motor.run(-power)
-    # while True:
-    #     angle=gyro.angle()
-        
-    #     if abs(angle)>target_angle-2:
-    #         left_motor.stop()
-    #         right_motor.stop()
-    #         break
-    print('robot turn')
-    robot.drive(power, power)
-    while True:
-        angle = gyro.angle()
-        print(angle)
-        if abs(angle)>target_angle-2:
-            robot.stop()
-            break
+    current_angle = gyro.angle()
+    while abs(current_angle - target_angle) > 5:
+        current_angle = gyro.angle()
+        if current_angle < target_angle:
+            left_motor.run(power)
+            right_motor.run(-power)
+        elif current_angle > target_angle:
+            left_motor.run(-power)
+            right_motor.run(power)
+
+    # 목표 각도에 도달하면 모터 정지
+    left_motor.stop()
+    right_motor.stop()
+
 
 #==========[camera_chase]==========
 def process_uart_data(data):
@@ -72,22 +71,22 @@ def pd_control(cam_data, kp, kd, power):
 def grab(command):
     if command == 'motion3':
         #close
-        grab_motor.run_until_stalled(250,Stop.COAST,duty_limit=50)
+        grab_motor.run_until_stalled(400,Stop.COAST,duty_limit=50)
         #set_zero point
         grab_motor.reset_angle(0)
     elif command == 'motion1':
         
         #open1
-        grab_motor.run_until_stalled(-250,Stop.COAST,duty_limit=50)
+        grab_motor.run_until_stalled(-400,Stop.COAST,duty_limit=50)
     elif command == 'motion2':
 
         #open2
-        grab_motor.run_target(250,-70)
+        grab_motor.run_target(400,-70)
 
 def shoot(command):
     if command == 'zero':
         #zero_position
-        shooting_motor.run_until_stalled(-200,Stop.COAST,duty_limit=50)
+        shooting_motor.run_until_stalled(-400,Stop.COAST,duty_limit=50)
     elif command == 'shoot':
         #shooting
         shooting_motor.run(2000)
@@ -133,10 +132,34 @@ while True:
                 grab('motion2') 
             else: #공이 카메라 화면 기준 멀리 위치해 있으면 chase한다
                 pd_control(filter_result[0], kp=0.6, kd=0.4, power=150)
-        # else: # 센서가 공을 보지 못했을 경우의 움직임.
-        #     robot.straight(50)
-        #     robot.turn(10)
-
+        else: # 센서가 공을 보지 못했을 경우의 움직임.
+            
+            """
+            터치 센서가 눌리면 후진
+            """
+            # if touch_sensor.pressed():
+            #     robot.straight(-200)
+            #     time.sleep(0.5)
+            #     continue 
+            
+            """
+            초음파 센서 5cm 이하 시 후진
+            """
+            distance = ultrasonic_sensor.distance()  # 센서 값은 mm 단위로 반환됨
+            if distance <= 50:  # 5cm (50mm) 이하일 때
+                print(f"장애물 감지! 거리: {distance}mm. 후진 시작")
+                robot.straight(-200)  # 200mm 후진
+                time.sleep(0.5)  # 딜레이 추가
+                continue  # 후진 후 다음 루프로 이동
+            
+            turn(-30, 100) 
+            time.sleep(0.5)
+            turn(60, 100)
+            time.sleep(0.5)
+            turn(0, 100)
+            time.sleep(0.5)
+            robot.straight(200) 
+            time.sleep(0.5)
         time.sleep_ms(50)
     except:
         pass
