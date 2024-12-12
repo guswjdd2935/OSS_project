@@ -26,7 +26,7 @@ class Blob:
         return self.w * self.h  # 사각형 면적 계산
 
 # 3단계 코드: 특정 색상 범위로 블롭 감지
-threshold_red = (150, 250, 100, 150, 0, 100)
+threshold_red = (150, 250, 80, 150, 0, 50)
 
 def find_blobs(img, threshold):
     width = img.width()
@@ -43,7 +43,7 @@ def find_blobs(img, threshold):
     return blobs
 
 # 4단계 코드: 블롭 병합
-def merge_blobs(blobs, distance_threshold=50):
+def merge_blobs(blobs, distance_threshold=30):
     merged_blobs = []
 
     while blobs:
