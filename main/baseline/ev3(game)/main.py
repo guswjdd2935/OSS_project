@@ -13,32 +13,28 @@ import time
 ev3 = EV3Brick()
 gyro = GyroSensor(Port.S1)
 ser = UARTDevice(Port.S2, baudrate=115200)
-ultrasonic_sensor = UltrasonicSensor(Port.S3)
-touch_sensor = TouchSensor(Port.S4)
+touch_sensor = TouchSensor(Port.S3)
 
 #==========[motors]==========
-grab_motor = Motor(Port.B)
-shooting_motor = Motor(Port.C)
+grab_motor = Motor(Port.A)
+shooting_motor = Motor(Port.D)
 
-left_motor = Motor(Port.A)
-right_motor = Motor(Port.D)
+left_motor = Motor(Port.B)
+right_motor = Motor(Port.C)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=115)
 
 #==========[target_angle turn(gyro)]==========
-def turn(target_angle, power): 
-    current_angle = gyro.angle()
-    while abs(current_angle - target_angle) > 5:
-        current_angle = gyro.angle()
-        if current_angle < target_angle:
-            left_motor.run(power)
-            right_motor.run(-power)
-        elif current_angle > target_angle:
-            left_motor.run(-power)
-            right_motor.run(power)
+def turn(target_angle, power):
+    # Start turning the robot with the g
+    while True:
+        angle = gyro.angle()
+        robot.drive(power, -(angle-target_angle)) 
+        
+        if abs(angle) >= abs(target_angle) - 3:
+            robot.stop()
+            break
 
-    # 목표 각도에 도달하면 모터 정지
-    left_motor.stop()
-    right_motor.stop()
+
 
 
 #==========[camera_chase]==========
@@ -77,11 +73,11 @@ def grab(command):
     elif command == 'motion1':
         
         #open1
-        grab_motor.run_until_stalled(-400,Stop.COAST,duty_limit=50)
+        grab_motor.run_target(400,-150)
     elif command == 'motion2':
 
         #open2
-        grab_motor.run_target(400,-70)
+        grab_motor.run_target(400,-90)
 
 def shoot(command):
     if command == 'zero':
@@ -111,56 +107,41 @@ print("Zero set postion completed")
 #==========[main loop]==========
 while True:
     data = ser.read_all()
-    # 데이터 처리 및 결과 필터링
     try:
         filter_result = process_uart_data(data)
+        
         #filter_result[0] : x, filter_result[1] : y
+        # if filter_result[0]== -1 and filter_result[1]== -1: 
+        #     robot.drive(10,0)
+        #     time.sleep(0.5)
+            
         if filter_result[0]!= -1 and filter_result[1]!= -1:
         # if filter_result[0]!= -1 and filter_result[1]!= -1:
-            if filter_result[1] > 110: #공이 카메라 화면 기준으로 아래에 위치 = 로봇에 가까워졌다
-                robot.straight(200) #강제로 앞으로 이동
+            if filter_result[1] > 90: #공이 카메라 화면 기준으로 아래에 위치 = 로봇에 가까워졌다
+                robot.straight(400)
                 grab('motion3') #공을 잡기
                 time.sleep(0.5) #동작간 딜레이
                 turn(0,100) #정면(상대방 진영)바라보기
+                print("turn")
+
+                while touch_sensor.pressed() == False:
+                    robot.straight(100)
+
+                    if touch_sensor.pressed() == True:
+                        break
+
+                robot.straight(-100)
+
                 time.sleep(0.5) #동작간 딜레이
                 grab('motion1') #슛을 위한 열기
                 time.sleep(0.5) #동작간 딜레이
                 shoot('shoot') #공 날리기
-                turn(0,-100)
                 time.sleep(0.5) #동작간 딜레이
                 shoot('zero')
                 grab('motion2') 
             else: #공이 카메라 화면 기준 멀리 위치해 있으면 chase한다
                 pd_control(filter_result[0], kp=0.6, kd=0.4, power=150)
-        else: # 센서가 공을 보지 못했을 경우의 움직임.
-            
-            """
-            터치 센서가 눌리면 후진
-            """
-            # if touch_sensor.pressed():
-            #     robot.straight(-200)
-            #     time.sleep(0.5)
-            #     continue 
-            
-            """
-            초음파 센서 5cm 이하 시 후진
-            """
-            distance = ultrasonic_sensor.distance()  # 센서 값은 mm 단위로 반환됨
-            if distance <= 50:  # 5cm (50mm) 이하일 때
-                print(f"장애물 감지! 거리: {distance}mm. 후진 시작")
-                robot.straight(-200)  # 200mm 후진
-                time.sleep(0.5)  # 딜레이 추가
-                continue  # 후진 후 다음 루프로 이동
-            
-            turn(-30, 100) 
-            time.sleep(0.5)
-            turn(60, 100)
-            time.sleep(0.5)
-            turn(0, 100)
-            time.sleep(0.5)
-            robot.straight(200) 
-            time.sleep(0.5)
-        time.sleep_ms(50)
+                print("공발견")
     except:
         pass
 
@@ -174,5 +155,3 @@ while True:
         wait(10)
     except:
         pass
-        
-
